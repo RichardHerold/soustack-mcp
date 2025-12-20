@@ -1,4 +1,6 @@
 import readline from "node:readline";
+import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import type { Request, Response } from "./protocol.js";
 
 type ToolHandler = (input: Record<string, unknown>) =>
@@ -12,6 +14,60 @@ export function registerTool(name: string, handler: ToolHandler): void {
 }
 
 registerTool("ping", async () => ({ pong: true }));
+const require = createRequire(import.meta.url);
+const supportedProfiles = [
+  "lite",
+  "base",
+  "timed",
+  "scalable",
+  "illustrated",
+  "equipped",
+  "prepped",
+];
+
+async function readMcpVersion(): Promise<string> {
+  const packageUrl = new URL("../package.json", import.meta.url);
+  const contents = await readFile(packageUrl, "utf-8");
+  const parsed = JSON.parse(contents) as { version?: string };
+  if (typeof parsed.version !== "string") {
+    throw new Error("Unable to resolve MCP package version.");
+  }
+  return parsed.version;
+}
+
+function readSoustackVersion(): string | null {
+  try {
+    const soustackPackage = require("soustack/package.json") as { version?: string };
+    return typeof soustackPackage?.version === "string" ? soustackPackage.version : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function readSoustackSpecVersion(): string | null {
+  try {
+    const soustackModule = require("soustack") as { SOUSTACK_SPEC_VERSION?: unknown };
+    return typeof soustackModule?.SOUSTACK_SPEC_VERSION === "string"
+      ? soustackModule.SOUSTACK_SPEC_VERSION
+      : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+registerTool("soustack.meta", async () => {
+  const mcpVersion = await readMcpVersion();
+  const soustackVersion = readSoustackVersion();
+  const specVersion = readSoustackSpecVersion();
+
+  return {
+    mcpVersion,
+    soustackVersion,
+    specVersion,
+    supportedProfiles: [...supportedProfiles],
+    timestamp: new Date().toISOString(),
+  };
+});
 
 function writeResponse(stream: NodeJS.WritableStream, response: Response): void {
   stream.write(`${JSON.stringify(response)}\n`);
