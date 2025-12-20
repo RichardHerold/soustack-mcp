@@ -2,4 +2,4 @@
 
 import { startServer } from "./server.js";
 
-startServer();
+startServer(process.stdin, process.stdout);
