@@ -1,6 +1,7 @@
 import readline from "node:readline";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
+import { validateRecipe } from "soustack";
 import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
 
@@ -70,6 +71,38 @@ registerTool("soustack.meta", async () => {
   };
 });
 registerTool("soustack.convert", async (input) => convertTool(input));
+
+registerTool("soustack.validate", async (input) => {
+  const { recipe, options } = input as { recipe?: unknown; options?: unknown };
+
+  try {
+    const result = await validateRecipe(recipe, options as Parameters<typeof validateRecipe>[1]);
+    const ok = result?.ok === true;
+    const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+    const schemaErrors = Array.isArray(result?.schemaErrors) ? result.schemaErrors : [];
+    const conformanceIssues = Array.isArray(result?.conformanceIssues)
+      ? result.conformanceIssues
+      : [];
+
+    return {
+      ok,
+      warnings,
+      schemaErrors,
+      conformanceIssues,
+      ...(result?.normalizedRecipe === undefined
+        ? {}
+        : { normalizedRecipe: result.normalizedRecipe }),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return {
+      ok: false,
+      warnings: [],
+      schemaErrors: [{ path: "", message }],
+      conformanceIssues: [],
+    };
+  }
+});
 
 function writeResponse(stream: NodeJS.WritableStream, response: Response): void {
   stream.write(`${JSON.stringify(response)}\n`);
