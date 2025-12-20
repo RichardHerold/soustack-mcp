@@ -19,4 +19,9 @@ declare module "soustack" {
     recipe: unknown,
     options?: ValidateRecipeOptions,
   ): ValidateRecipeResult | Promise<ValidateRecipeResult>;
+
+  export function scaleRecipe(
+    recipe: unknown,
+    options: { multiplier: number },
+  ): unknown;
 }
