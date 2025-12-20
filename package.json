@@ -1,0 +1,18 @@
+{
+  "name": "@soustack/mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "soustack-mcp": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/cli.ts",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}
