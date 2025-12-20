@@ -20,6 +20,9 @@ declare module "soustack" {
     options?: ValidateRecipeOptions,
   ): ValidateRecipeResult | Promise<ValidateRecipeResult>;
 
+  export function detectProfiles(
+    recipe: unknown,
+  ): string[] | { profiles: string[] } | Promise<string[] | { profiles: string[] }>;
   export function scaleRecipe(
     recipe: unknown,
     options: { multiplier: number },
