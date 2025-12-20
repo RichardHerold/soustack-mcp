@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { validateRecipe } from "soustack";
 import type { Request, Response } from "./protocol.js";
+import { convertTool } from "./soustack-convert.js";
 
 type ToolHandler = (input: Record<string, unknown>) =>
   | Record<string, unknown>
@@ -69,6 +70,7 @@ registerTool("soustack.meta", async () => {
     timestamp: new Date().toISOString(),
   };
 });
+registerTool("soustack.convert", async (input) => convertTool(input));
 
 registerTool("soustack.validate", async (input) => {
   const { recipe, options } = input as { recipe?: unknown; options?: unknown };
@@ -138,6 +140,14 @@ function serializeError(error: unknown): { message: string; details?: unknown } 
   return { message: "Unknown error", details: error };
 }
 
+function getErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+  const candidate = error as { code?: unknown };
+  return typeof candidate.code === "string" ? candidate.code : null;
+}
+
 export function startServer(
   input: NodeJS.ReadableStream,
   output: NodeJS.WritableStream,
@@ -183,7 +193,8 @@ export function startServer(
       writeResponse(output, response);
     } catch (error) {
       const { message, details } = serializeError(error);
-      writeResponse(output, toErrorResponse(parsed.id, "TOOL_ERROR", message, details));
+      const errorCode = getErrorCode(error) ?? "TOOL_ERROR";
+      writeResponse(output, toErrorResponse(parsed.id, errorCode, message, details));
     }
   });
 }
