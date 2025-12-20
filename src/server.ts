@@ -104,6 +104,47 @@ registerTool("soustack.validate", async (input) => {
   }
 });
 
+function getDetectProfiles(): ((recipe: unknown) => Promise<unknown> | unknown) | null {
+  try {
+    const soustackModule = require("soustack") as { detectProfiles?: unknown };
+    if (typeof soustackModule.detectProfiles === "function") {
+      return soustackModule.detectProfiles as (recipe: unknown) => Promise<unknown> | unknown;
+    }
+  } catch (error) {
+    return null;
+  }
+  return null;
+}
+
+registerTool("soustack.detectProfiles", async (input) => {
+  const { recipe } = input as { recipe?: unknown };
+  const detectProfiles = getDetectProfiles();
+
+  if (detectProfiles) {
+    const detected = await detectProfiles(recipe);
+    const profiles = Array.isArray(detected)
+      ? detected
+      : Array.isArray((detected as { profiles?: unknown } | null)?.profiles)
+        ? ((detected as { profiles?: string[] }).profiles ?? [])
+        : [];
+    return { profiles };
+  }
+
+  const results = await Promise.all(
+    supportedProfiles.map(async (profile) => {
+      try {
+        const result = await validateRecipe(recipe, { profile });
+        return result?.ok === true;
+      } catch (error) {
+        return false;
+      }
+    }),
+  );
+
+  const profiles = supportedProfiles.filter((_, index) => results[index]);
+  return { profiles };
+});
+
 function writeResponse(stream: NodeJS.WritableStream, response: Response): void {
   stream.write(`${JSON.stringify(response)}\n`);
 }
