@@ -11,4 +11,12 @@ export function validateRecipe(recipe, options) {
   };
 }
 
+export function scaleRecipe(recipe, options) {
+  const override = globalThis.__soustackScaleRecipe;
+  if (typeof override === "function") {
+    return override(recipe, options);
+  }
+  return { recipe, options };
+}
+
 export const SOUSTACK_SPEC_VERSION = "test";

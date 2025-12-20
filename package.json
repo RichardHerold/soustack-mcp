@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
-    "test": "npm run build && node --test --loader ./test/soustack-loader.js test/*.test.js"
+    "test": "npm run build && node --test --loader ./test/soustack-loader.js test/soustack.validate.test.js test/soustack.scale.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.19",
