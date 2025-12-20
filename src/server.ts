@@ -2,6 +2,7 @@ import readline from "node:readline";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import type { Request, Response } from "./protocol.js";
+import { convertTool } from "./soustack-convert.js";
 
 type ToolHandler = (input: Record<string, unknown>) =>
   | Record<string, unknown>
@@ -68,6 +69,7 @@ registerTool("soustack.meta", async () => {
     timestamp: new Date().toISOString(),
   };
 });
+registerTool("soustack.convert", async (input) => convertTool(input));
 
 function writeResponse(stream: NodeJS.WritableStream, response: Response): void {
   stream.write(`${JSON.stringify(response)}\n`);
@@ -103,6 +105,14 @@ function serializeError(error: unknown): { message: string; details?: unknown } 
     return { message: error.message, details: { name: error.name, stack: error.stack } };
   }
   return { message: "Unknown error", details: error };
+}
+
+function getErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+  const candidate = error as { code?: unknown };
+  return typeof candidate.code === "string" ? candidate.code : null;
 }
 
 export function startServer(
@@ -150,7 +160,8 @@ export function startServer(
       writeResponse(output, response);
     } catch (error) {
       const { message, details } = serializeError(error);
-      writeResponse(output, toErrorResponse(parsed.id, "TOOL_ERROR", message, details));
+      const errorCode = getErrorCode(error) ?? "TOOL_ERROR";
+      writeResponse(output, toErrorResponse(parsed.id, errorCode, message, details));
     }
   });
 }
