@@ -34,3 +34,17 @@ Responses are emitted to stdout as JSON lines, for example:
 ```json
 {"jsonrpc":"2.0","id":1,"result":{"ok":true}}
 ```
+
+## Example invocation
+
+Request:
+
+```json
+{"id":"meta-1","tool":"soustack.meta","input":{}}
+```
+
+Response:
+
+```json
+{"id":"meta-1","ok":true,"output":{"mcpVersion":"0.1.0","soustackVersion":null,"specVersion":null,"supportedProfiles":["lite","base","timed","scalable","illustrated","equipped","prepped"],"timestamp":"2024-01-01T00:00:00.000Z"}}
+```
