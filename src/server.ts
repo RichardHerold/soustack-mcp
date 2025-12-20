@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { validateRecipe } from "soustack";
 import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
+import { scaleTool } from "./soustack-scale.js";
 
 type ToolHandler = (input: Record<string, unknown>) =>
   | Record<string, unknown>
@@ -71,6 +72,7 @@ registerTool("soustack.meta", async () => {
   };
 });
 registerTool("soustack.convert", async (input) => convertTool(input));
+registerTool("soustack.scale", async (input) => scaleTool(input));
 
 registerTool("soustack.validate", async (input) => {
   const { recipe, options } = input as { recipe?: unknown; options?: unknown };
