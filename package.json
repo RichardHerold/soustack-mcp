@@ -12,7 +12,7 @@
     "test": "npm run build && node scripts/smoke.mjs && node --test --loader ./test/soustack-loader.js test/soustack.validate.test.js test/soustack.scale.test.js"
   },
   "dependencies": {
-    "soustack": "^0.1.0"
+    "soustack": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.19",
