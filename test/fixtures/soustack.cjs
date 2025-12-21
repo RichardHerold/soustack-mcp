@@ -1,4 +1,14 @@
-export function validateRecipe(recipe, options) {
+const profiles = [
+  "lite",
+  "base",
+  "timed",
+  "scalable",
+  "illustrated",
+  "equipped",
+  "prepped",
+];
+
+function validateRecipe(recipe, options) {
   const override = globalThis.__soustackValidateRecipe;
   if (typeof override === "function") {
     return override(recipe, options);
@@ -11,7 +21,7 @@ export function validateRecipe(recipe, options) {
   };
 }
 
-export function scaleRecipe(recipe, options) {
+function scaleRecipe(recipe, options) {
   const override = globalThis.__soustackScaleRecipe;
   if (typeof override === "function") {
     return override(recipe, options);
@@ -19,26 +29,20 @@ export function scaleRecipe(recipe, options) {
   return { recipe, options };
 }
 
-export async function detectProfiles(recipe) {
-  const profiles = [
-    "lite",
-    "base",
-    "timed",
-    "scalable",
-    "illustrated",
-    "equipped",
-    "prepped",
-  ];
+async function detectProfiles(recipe) {
   const detected = [];
-
   for (const profile of profiles) {
     const result = await validateRecipe(recipe, { profile });
     if (result?.ok === true) {
       detected.push(profile);
     }
   }
-
   return detected;
 }
 
-export const SOUSTACK_SPEC_VERSION = "test";
+module.exports = {
+  validateRecipe,
+  scaleRecipe,
+  detectProfiles,
+  SOUSTACK_SPEC_VERSION: "test",
+};
