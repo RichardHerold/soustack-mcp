@@ -29,16 +29,20 @@ function scaleRecipe(recipe, options) {
   return { recipe, options };
 }
 
-async function detectProfiles(recipe) {
-  const detected = [];
-  for (const profile of profiles) {
-    const result = await validateRecipe(recipe, { profile });
-    if (result?.ok === true) {
-      detected.push(profile);
+const detectProfilesEnabled = globalThis.__soustackDisableDetectProfiles !== true;
+
+const detectProfiles = detectProfilesEnabled
+  ? async function detectProfiles(recipe) {
+      const detected = [];
+      for (const profile of profiles) {
+        const result = await validateRecipe(recipe, { profile });
+        if (result?.ok === true) {
+          detected.push(profile);
+        }
+      }
+      return detected;
     }
-  }
-  return detected;
-}
+  : undefined;
 
 module.exports = {
   validateRecipe,

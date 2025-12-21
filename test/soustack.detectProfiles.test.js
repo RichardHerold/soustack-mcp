@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import { PassThrough } from "node:stream";
 import { test } from "node:test";
+
+const require = createRequire(import.meta.url);
+
+function resetSoustackModule() {
+  delete require.cache[require.resolve("soustack")];
+}
 
 function sendRequest(startServer, request) {
   const input = new PassThrough();
@@ -28,9 +35,12 @@ function sendRequest(startServer, request) {
 
 test.afterEach(() => {
   delete globalThis.__soustackValidateRecipe;
+  delete globalThis.__soustackDisableDetectProfiles;
+  resetSoustackModule();
 });
 
 test("soustack.detectProfiles returns profiles for minimal recipes", async () => {
+  globalThis.__soustackDisableDetectProfiles = true;
   globalThis.__soustackValidateRecipe = async (recipe, options) => ({
     ok: ["lite", "base"].includes(options?.profile),
     warnings: [],
@@ -38,6 +48,7 @@ test("soustack.detectProfiles returns profiles for minimal recipes", async () =>
     conformanceIssues: [],
   });
 
+  resetSoustackModule();
   const { startServer } = await import(`../dist/server.js?profiles-min=${Date.now()}`);
   const response = await sendRequest(startServer, {
     id: "profiles-min-1",
@@ -50,6 +61,7 @@ test("soustack.detectProfiles returns profiles for minimal recipes", async () =>
 });
 
 test("soustack.detectProfiles returns profiles for scalable recipes", async () => {
+  globalThis.__soustackDisableDetectProfiles = true;
   globalThis.__soustackValidateRecipe = async (recipe, options) => ({
     ok:
       recipe?.scalable === true
@@ -60,6 +72,7 @@ test("soustack.detectProfiles returns profiles for scalable recipes", async () =
     conformanceIssues: [],
   });
 
+  resetSoustackModule();
   const { startServer } = await import(`../dist/server.js?profiles-scale=${Date.now()}`);
   const response = await sendRequest(startServer, {
     id: "profiles-scale-1",
