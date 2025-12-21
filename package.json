@@ -11,6 +11,9 @@
     "smoke": "node scripts/smoke.mjs",
     "test": "npm run build && node scripts/smoke.mjs && node --test --loader ./test/soustack-loader.js test/soustack.validate.test.js test/soustack.scale.test.js"
   },
+  "dependencies": {
+    "soustack": "^0.1.0"
+  },
   "devDependencies": {
     "@types/node": "^20.11.19",
     "ts-node": "^10.9.2",
