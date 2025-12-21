@@ -51,3 +51,59 @@ test("converts Soustack recipe to Schema.org Recipe JSON-LD", () => {
     },
   });
 });
+
+test("infers ingredients conservatively from imperative instructions", () => {
+  const schemaOrgRecipe = {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    name: "Toast",
+    recipeIngredient: [],
+    recipeInstructions: [
+      "Spread soft butter on white bread.",
+      "Sprinkle with cinnamon/sugar mix.",
+    ],
+  };
+
+  const result = convertTool({
+    from: "schemaorg",
+    to: "soustack",
+    payload: schemaOrgRecipe,
+  });
+
+  assert.deepEqual(result, {
+    payload: {
+      type: "recipe",
+      name: "Toast",
+      ingredients: ["soft butter", "white bread", "cinnamon/sugar mix"],
+      instructions: [
+        "Spread soft butter on white bread.",
+        "Sprinkle with cinnamon/sugar mix.",
+      ],
+    },
+  });
+});
+
+test("does not infer ingredients when confidence is low", () => {
+  const schemaOrgRecipe = {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    name: "Mystery Dish",
+    recipeIngredient: [],
+    recipeInstructions: ["Serve immediately."],
+  };
+
+  const result = convertTool({
+    from: "schemaorg",
+    to: "soustack",
+    payload: schemaOrgRecipe,
+  });
+
+  assert.deepEqual(result, {
+    payload: {
+      type: "recipe",
+      name: "Mystery Dish",
+      ingredients: [],
+      instructions: ["Serve immediately."],
+    },
+  });
+});
