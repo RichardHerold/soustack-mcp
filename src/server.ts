@@ -274,7 +274,7 @@ function isRequest(value: unknown): value is Request {
 
 function serializeError(error: unknown): { message: string; details?: unknown } {
   if (error instanceof Error) {
-    return { message: error.message, details: { name: error.name, stack: error.stack } };
+    return { message: error.message, details: { name: error.name } };
   }
   return { message: "Unknown error", details: error };
 }
