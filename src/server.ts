@@ -10,6 +10,62 @@ type ToolHandler = (input: Record<string, unknown>) =>
   | Record<string, unknown>
   | Promise<Record<string, unknown>>;
 
+class ToolOutputError extends Error {
+  code = "INVALID_TOOL_OUTPUT";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ToolOutputError";
+  }
+}
+
+function sanitizeForJson(value: unknown): unknown {
+  if (value === undefined) {
+    return null;
+  }
+
+  const serialized = JSON.stringify(value, (_key, current) => {
+    if (typeof current === "bigint") {
+      return current.toString();
+    }
+    if (current instanceof Date) {
+      return current.toISOString();
+    }
+    if (current instanceof Map) {
+      return Object.fromEntries(current);
+    }
+    if (current instanceof Set) {
+      return Array.from(current);
+    }
+    if (typeof current === "function" || typeof current === "symbol") {
+      return undefined;
+    }
+    return current;
+  });
+
+  if (serialized === undefined) {
+    return null;
+  }
+
+  return JSON.parse(serialized) as unknown;
+}
+
+function ensureJsonObject(value: unknown): Record<string, unknown> {
+  try {
+    const sanitized = sanitizeForJson(value);
+    if (!sanitized || typeof sanitized !== "object" || Array.isArray(sanitized)) {
+      throw new ToolOutputError("Tool output must be a JSON object.");
+    }
+    return sanitized as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof ToolOutputError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new ToolOutputError(`Tool output is not JSON-serializable: ${message}`);
+  }
+}
+
 const toolRegistry = new Map<string, ToolHandler>();
 
 export function registerTool(name: string, handler: ToolHandler): void {
@@ -183,13 +239,22 @@ function writeResponse(stream: NodeJS.WritableStream, response: Response): void 
 }
 
 function toErrorResponse(id: string, code: string, message: string, details?: unknown): Response {
+  let sanitizedDetails: unknown = undefined;
+  if (details !== undefined) {
+    try {
+      sanitizedDetails = sanitizeForJson(details);
+    } catch (error) {
+      sanitizedDetails = undefined;
+    }
+  }
+
   return {
     id,
     ok: false,
     error: {
       code,
       message,
-      ...(details === undefined ? {} : { details }),
+      ...(sanitizedDetails === undefined ? {} : { details: sanitizedDetails }),
     },
   };
 }
@@ -259,10 +324,11 @@ export function startServer(
 
     try {
       const outputPayload = await handler(parsed.input);
+      const normalizedOutput = ensureJsonObject(outputPayload);
       const response: Response = {
         id: parsed.id,
         ok: true,
-        output: outputPayload,
+        output: normalizedOutput,
       };
       writeResponse(output, response);
     } catch (error) {

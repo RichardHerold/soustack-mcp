@@ -122,14 +122,14 @@ async function main() {
         recipe: {
           type: "recipe",
           name: "Scaled",
-          ingredients: [{ name: "Flour", quantity: 1, unit: "cup" }],
+          ingredients: [{ item: "Flour", quantity: { amount: 1, unit: "cup" } }],
           instructions: ["Mix"],
         },
         options: { multiplier: 2 },
       },
     });
     assertSuccess(scaleResponse, "scale-1");
-    assert.equal(scaleResponse.output.recipe.ingredients[0].quantity, 2);
+    assert.equal(scaleResponse.output.recipe.ingredients[0].quantity.amount, 2);
   } finally {
     child.stdin.end();
     reader.close();

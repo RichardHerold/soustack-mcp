@@ -54,7 +54,7 @@ Ping request:
 Ping response:
 
 ```json
-{ "id": "ping-1", "ok": true, "output": { "ok": true } }
+{ "id": "ping-1", "ok": true, "output": { "pong": true } }
 ```
 
 Soustack meta request:
@@ -78,5 +78,5 @@ Soustack validate request (invalid recipe):
 Soustack validate response (invalid recipe):
 
 ```json
-{ "id": "validate-1", "ok": false, "error": { "message": "Recipe validation failed", "issues": ["title is required", "ingredients must not be empty"] } }
+{ "id": "validate-1", "ok": true, "output": { "ok": false, "warnings": [], "schemaErrors": [{ "path": "/title", "message": "Required" }], "conformanceIssues": [] } }
 ```
