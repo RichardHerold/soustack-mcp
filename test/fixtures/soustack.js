@@ -19,26 +19,30 @@ export function scaleRecipe(recipe, options) {
   return { recipe, options };
 }
 
-export async function detectProfiles(recipe) {
-  const profiles = [
-    "lite",
-    "base",
-    "timed",
-    "scalable",
-    "illustrated",
-    "equipped",
-    "prepped",
-  ];
-  const detected = [];
+const detectProfilesEnabled = globalThis.__soustackDisableDetectProfiles !== true;
 
-  for (const profile of profiles) {
-    const result = await validateRecipe(recipe, { profile });
-    if (result?.ok === true) {
-      detected.push(profile);
+export const detectProfiles = detectProfilesEnabled
+  ? async function detectProfiles(recipe) {
+      const profiles = [
+        "lite",
+        "base",
+        "timed",
+        "scalable",
+        "illustrated",
+        "equipped",
+        "prepped",
+      ];
+      const detected = [];
+
+      for (const profile of profiles) {
+        const result = await validateRecipe(recipe, { profile });
+        if (result?.ok === true) {
+          detected.push(profile);
+        }
+      }
+
+      return detected;
     }
-  }
-
-  return detected;
-}
+  : undefined;
 
 export const SOUSTACK_SPEC_VERSION = "test";

@@ -144,17 +144,25 @@ function getDetectProfiles(): DetectProfiles | null {
     : null;
 }
 
+function normalizeProfiles(detected: unknown): string[] {
+  const profiles = Array.isArray(detected)
+    ? detected
+    : Array.isArray((detected as { profiles?: unknown } | null)?.profiles)
+      ? (detected as { profiles?: unknown[] }).profiles ?? []
+      : [];
+  const knownProfiles = new Set(
+    profiles.filter((profile): profile is string => typeof profile === "string"),
+  );
+  return supportedProfiles.filter((profile) => knownProfiles.has(profile));
+}
+
 registerTool("soustack.detectProfiles", async (input) => {
   const { recipe } = input as { recipe?: unknown };
   const detectProfiles = getDetectProfiles();
 
   if (detectProfiles) {
     const detected = await detectProfiles(recipe);
-    const profiles = Array.isArray(detected)
-      ? detected
-      : Array.isArray((detected as { profiles?: unknown } | null)?.profiles)
-        ? ((detected as { profiles?: string[] }).profiles ?? [])
-        : [];
+    const profiles = normalizeProfiles(detected);
     return { profiles };
   }
 
