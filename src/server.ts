@@ -207,19 +207,11 @@ function isRequest(value: unknown): value is Request {
   );
 }
 
-function serializeError(error: unknown): { message: string; details?: unknown } {
+function serializeError(error: unknown): { message: string } {
   if (error instanceof Error) {
-    return { message: error.message, details: { name: error.name, stack: error.stack } };
+    return { message: error.message };
   }
-  return { message: "Unknown error", details: error };
-}
-
-function getErrorCode(error: unknown): string | null {
-  if (!error || typeof error !== "object") {
-    return null;
-  }
-  const candidate = error as { code?: unknown };
-  return typeof candidate.code === "string" ? candidate.code : null;
+  return { message: "Unknown error" };
 }
 
 export function startServer(
@@ -238,8 +230,8 @@ export function startServer(
     try {
       parsed = JSON.parse(trimmed);
     } catch (error) {
-      const { message, details } = serializeError(error);
-      writeResponse(output, toErrorResponse("", "PARSE_ERROR", message, details));
+      const { message } = serializeError(error);
+      writeResponse(output, toErrorResponse("", "BAD_JSON", message));
       return;
     }
 
@@ -266,9 +258,8 @@ export function startServer(
       };
       writeResponse(output, response);
     } catch (error) {
-      const { message, details } = serializeError(error);
-      const errorCode = getErrorCode(error) ?? "TOOL_ERROR";
-      writeResponse(output, toErrorResponse(parsed.id, errorCode, message, details));
+      const { message } = serializeError(error);
+      writeResponse(output, toErrorResponse(parsed.id, "TOOL_ERROR", message));
     }
   });
 }
