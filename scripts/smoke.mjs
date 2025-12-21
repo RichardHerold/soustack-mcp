@@ -38,6 +38,17 @@ function createLineReader(stream) {
   return { nextLine, close: () => rl.close() };
 }
 
+function assertResponseShape(response, requestId) {
+  assert.equal(response.id, requestId);
+  assert.equal(typeof response.ok, "boolean");
+
+  if (response.ok === true) {
+    assert.ok(response.output && typeof response.output === "object");
+  } else {
+    assert.ok(response.error && typeof response.error === "object");
+  }
+}
+
 async function sendRequest(child, reader, request) {
   child.stdin.write(`${JSON.stringify(request)}\n`);
   const line = await reader.nextLine();
@@ -47,11 +58,11 @@ async function sendRequest(child, reader, request) {
   } catch (error) {
     throw new Error(`Failed to parse response: ${line}`);
   }
+  assertResponseShape(parsed, request.id);
   return parsed;
 }
 
 function assertSuccess(response, id) {
-  assert.equal(response.id, id);
   assert.equal(response.ok, true);
   assert.ok(response.output && typeof response.output === "object");
 }
@@ -122,14 +133,19 @@ async function main() {
         recipe: {
           type: "recipe",
           name: "Scaled",
-          ingredients: [{ name: "Flour", quantity: 1, unit: "cup" }],
+          ingredients: [
+            { item: "Flour", quantity: { amount: 1, unit: "cup" } },
+          ],
           instructions: ["Mix"],
         },
         options: { multiplier: 2 },
       },
     });
     assertSuccess(scaleResponse, "scale-1");
-    assert.equal(scaleResponse.output.recipe.ingredients[0].quantity, 2);
+    assert.equal(
+      scaleResponse.output.recipe.ingredients[0].quantity.amount,
+      2,
+    );
   } finally {
     child.stdin.end();
     reader.close();
