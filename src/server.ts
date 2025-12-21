@@ -1,7 +1,7 @@
 import readline from "node:readline";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
-import { validateRecipe } from "soustack";
+type ValidateRecipe = typeof import("soustack")["validateRecipe"];
 import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
 import { scaleTool } from "./soustack-scale.js";
@@ -18,6 +18,27 @@ export function registerTool(name: string, handler: ToolHandler): void {
 
 registerTool("ping", async () => ({ pong: true }));
 const require = createRequire(import.meta.url);
+type DetectProfiles = (recipe: unknown) => Promise<unknown> | unknown;
+
+function getSoustackModule():
+  | { validateRecipe?: ValidateRecipe; detectProfiles?: DetectProfiles }
+  | null {
+  try {
+    return require("soustack") as {
+      validateRecipe?: ValidateRecipe;
+      detectProfiles?: DetectProfiles;
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getValidateRecipe(): ValidateRecipe | null {
+  const soustackModule = getSoustackModule();
+  return typeof soustackModule?.validateRecipe === "function"
+    ? soustackModule.validateRecipe
+    : null;
+}
 const supportedProfiles = [
   "lite",
   "base",
@@ -76,6 +97,16 @@ registerTool("soustack.scale", async (input) => scaleTool(input));
 
 registerTool("soustack.validate", async (input) => {
   const { recipe, options } = input as { recipe?: unknown; options?: unknown };
+  const validateRecipe = getValidateRecipe();
+
+  if (!validateRecipe) {
+    return {
+      ok: false,
+      warnings: [],
+      schemaErrors: [{ path: "", message: "Soustack package not available." }],
+      conformanceIssues: [],
+    };
+  }
 
   try {
     const result = await validateRecipe(recipe, options as Parameters<typeof validateRecipe>[1]);
@@ -106,16 +137,11 @@ registerTool("soustack.validate", async (input) => {
   }
 });
 
-function getDetectProfiles(): ((recipe: unknown) => Promise<unknown> | unknown) | null {
-  try {
-    const soustackModule = require("soustack") as { detectProfiles?: unknown };
-    if (typeof soustackModule.detectProfiles === "function") {
-      return soustackModule.detectProfiles as (recipe: unknown) => Promise<unknown> | unknown;
-    }
-  } catch (error) {
-    return null;
-  }
-  return null;
+function getDetectProfiles(): DetectProfiles | null {
+  const soustackModule = getSoustackModule();
+  return typeof soustackModule?.detectProfiles === "function"
+    ? soustackModule.detectProfiles
+    : null;
 }
 
 registerTool("soustack.detectProfiles", async (input) => {
@@ -130,6 +156,11 @@ registerTool("soustack.detectProfiles", async (input) => {
         ? ((detected as { profiles?: string[] }).profiles ?? [])
         : [];
     return { profiles };
+  }
+
+  const validateRecipe = getValidateRecipe();
+  if (!validateRecipe) {
+    return { profiles: [] };
   }
 
   const results = await Promise.all(

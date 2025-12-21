@@ -6,7 +6,7 @@
     "soustack-mcp": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp dist/server.js dist/server",
     "dev": "ts-node src/cli.ts",
     "smoke": "node scripts/smoke.mjs",
     "test": "npm run build && node scripts/smoke.mjs && node --test --loader ./test/soustack-loader.js test/soustack.validate.test.js test/soustack.scale.test.js"
