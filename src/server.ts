@@ -187,7 +187,8 @@ registerTool("soustack.detectProfiles", async (input) => {
 });
 
 function writeResponse(stream: NodeJS.WritableStream, response: Response): void {
-  stream.write(`${JSON.stringify(response)}\n`);
+  const sanitized = sanitizeForJson(response);
+  stream.write(`${JSON.stringify(sanitized)}\n`);
 }
 
 function toErrorResponse(id: string, code: string, message: string, details?: unknown): Response {
@@ -200,6 +201,68 @@ function toErrorResponse(id: string, code: string, message: string, details?: un
       ...(details === undefined ? {} : { details }),
     },
   };
+}
+
+type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
+
+function sanitizeForJson(value: unknown, seen = new Set<unknown>()): JsonValue {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === "string" || typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : String(value);
+  }
+
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+
+  if (typeof value === "symbol" || typeof value === "function") {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (value instanceof Error) {
+    return { name: value.name, message: value.message };
+  }
+
+  if (value instanceof Map) {
+    return Array.from(value.entries()).map(([key, entryValue]) => [
+      sanitizeForJson(key, seen),
+      sanitizeForJson(entryValue, seen),
+    ]);
+  }
+
+  if (value instanceof Set) {
+    return Array.from(value.values()).map((entry) => sanitizeForJson(entry, seen));
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeForJson(entry, seen));
+  }
+
+  if (typeof value === "object") {
+    if (seen.has(value)) {
+      return "[Circular]";
+    }
+    seen.add(value);
+    const result: { [key: string]: JsonValue } = {};
+    for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = sanitizeForJson(entryValue, seen);
+    }
+    seen.delete(value);
+    return result;
+  }
+
+  return null;
 }
 
 function isRequest(value: unknown): value is Request {
