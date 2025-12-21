@@ -9,7 +9,7 @@
     "build": "tsc && cp dist/server.js dist/server",
     "dev": "ts-node src/cli.ts",
     "smoke": "node scripts/smoke.mjs",
-    "test": "npm run build && node scripts/smoke.mjs && node --test --loader ./test/soustack-loader.js test/soustack.validate.test.js test/soustack.scale.test.js"
+    "test": "npm run build && NODE_OPTIONS=\"--require ./test/soustack-require.cjs\" node --test --loader ./test/soustack-loader.js test/*.test.*"
   },
   "dependencies": {
     "soustack": "^0.4.0"
