@@ -1,8 +1,21 @@
 declare module "soustack" {
+  export type SoustackProfile =
+    | "lite"
+    | "base"
+    | "timed"
+    | "scalable"
+    | "illustrated"
+    | "equipped"
+    | "prepped"
+    | "minimal"
+    | "core";
+
   export type ValidateRecipeOptions = {
-    profile?: string;
+    profile?: SoustackProfile;
     mode?: "schema" | "full";
     includeNormalized?: boolean;
+    collectAllErrors?: boolean;
+    schema?: string;
   };
 
   export type ValidateRecipeResult = {
@@ -22,7 +35,10 @@ declare module "soustack" {
 
   export function detectProfiles(
     recipe: unknown,
-  ): string[] | { profiles: string[] } | Promise<string[] | { profiles: string[] }>;
+  ):
+    | SoustackProfile[]
+    | { profiles: SoustackProfile[] }
+    | Promise<SoustackProfile[] | { profiles: SoustackProfile[] }>;
   export function scaleRecipe(
     recipe: unknown,
     options: { multiplier: number },
