@@ -238,12 +238,22 @@ export function convertTool(input: Record<string, unknown>): Record<string, unkn
 
   let converted: Record<string, unknown>;
 
-  if (from === "schemaorg" && to === "soustack") {
-    converted = fromSchemaOrg(payload);
-  } else if (from === "soustack" && to === "schemaorg") {
-    converted = toSchemaOrg(payload);
-  } else {
-    throw new ConversionError("Conversion input from/to must be schemaorg or soustack.");
+  try {
+    if (from === "schemaorg" && to === "soustack") {
+      converted = fromSchemaOrg(payload);
+    } else if (from === "soustack" && to === "schemaorg") {
+      converted = toSchemaOrg(payload);
+    } else {
+      throw new ConversionError("Conversion input from/to must be schemaorg or soustack.");
+    }
+  } catch (error) {
+    if (error instanceof ConversionError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : "Conversion failed.";
+    const wrapped = new ConversionError(message);
+    wrapped.name = error instanceof Error ? error.name : wrapped.name;
+    throw wrapped;
   }
 
   return { payload: converted };

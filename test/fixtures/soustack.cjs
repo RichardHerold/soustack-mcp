@@ -6,6 +6,8 @@ const profiles = [
   "illustrated",
   "equipped",
   "prepped",
+  "minimal",
+  "core",
 ];
 
 function validateRecipe(recipe, options) {

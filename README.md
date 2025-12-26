@@ -66,7 +66,7 @@ Soustack meta request:
 Soustack meta response:
 
 ```json
-{ "id": "meta-1", "ok": true, "output": { "mcpVersion": "0.1.0", "soustackVersion": null, "specVersion": null, "supportedProfiles": ["lite", "base", "timed", "scalable", "illustrated", "equipped", "prepped"], "timestamp": "2024-01-01T00:00:00.000Z" } }
+{ "id": "meta-1", "ok": true, "output": { "mcpVersion": "0.1.0", "soustackVersion": null, "specVersion": null, "supportedProfiles": ["lite", "base", "timed", "scalable", "illustrated", "equipped", "prepped", "minimal", "core"], "timestamp": "2024-01-01T00:00:00.000Z" } }
 ```
 
 Soustack validate request (invalid recipe):
@@ -80,3 +80,51 @@ Soustack validate response (invalid recipe):
 ```json
 { "id": "validate-1", "ok": true, "output": { "ok": false, "warnings": [], "schemaErrors": [{ "path": "/name", "message": "Required" }], "conformanceIssues": [] } }
 ```
+
+## Tool schema
+
+All responses follow the stdio contract: `{ "id": string, "ok": boolean, ... }`. Tool failures surface as `ok:false` with a consistent error envelope: `{ "error": { "code": string, "message": string, "details"?: unknown } }`. Common error codes include `BAD_JSON`, `INVALID_REQUEST`, `UNKNOWN_TOOL`, `MODULE_UNAVAILABLE`, `INVALID_MODE`, `INVALID_MULTIPLIER`, `CONVERSION_FAILED`, and `SCALE_FAILED`.
+
+### `soustack.meta`
+Input: `{}`  
+Output:
+```json
+{
+  "mcpVersion": "0.1.0",
+  "soustackVersion": "0.4.0",
+  "specVersion": "0.3.0",
+  "supportedProfiles": ["lite","base","timed","scalable","illustrated","equipped","prepped","minimal","core"],
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### `soustack.validate`
+Input: `{ "recipe": unknown, "options"?: { "profile"?: string, "mode"?: "schema" | "full", "includeNormalized"?: boolean } }`  
+Output:
+```json
+{
+  "ok": true,
+  "warnings": [],
+  "schemaErrors": [],
+  "conformanceIssues": [],
+  "normalizedRecipe": { }
+}
+```
+
+### `soustack.detectProfiles`
+Input: `{ "recipe": unknown }`  
+Output: `{ "profiles": string[] }`
+
+### `soustack.scale`
+Input: `{ "recipe": unknown, "options": { "multiplier": number } }`  
+Output:
+```json
+{
+  "recipe": { },
+  "equipment": [ ]
+}
+```
+
+### `soustack.convert`
+Input: `{ "from": "schemaorg" | "soustack", "to": "schemaorg" | "soustack", "payload": unknown }`  
+Output: `{ "payload": { } }`

@@ -2,6 +2,7 @@ import readline from "node:readline";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 type ValidateRecipe = typeof import("soustack")["validateRecipe"];
+type SoustackProfile = import("soustack").SoustackProfile;
 import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
 import { scaleTool } from "./soustack-scale.js";
@@ -11,6 +12,18 @@ type ToolHandler = (input: Record<string, unknown>) =>
   | Promise<Record<string, unknown>>;
 
 const toolRegistry = new Map<string, ToolHandler>();
+
+class ToolError extends Error {
+  code: string;
+  details?: unknown;
+
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = "ToolError";
+    this.code = code;
+    this.details = details;
+  }
+}
 
 export function registerTool(name: string, handler: ToolHandler): void {
   toolRegistry.set(name, handler);
@@ -39,7 +52,7 @@ function getValidateRecipe(): ValidateRecipe | null {
     ? soustackModule.validateRecipe
     : null;
 }
-const supportedProfiles = [
+const supportedProfiles: SoustackProfile[] = [
   "lite",
   "base",
   "timed",
@@ -47,6 +60,8 @@ const supportedProfiles = [
   "illustrated",
   "equipped",
   "prepped",
+  "minimal",
+  "core",
 ];
 
 async function readMcpVersion(): Promise<string> {
@@ -100,16 +115,29 @@ registerTool("soustack.validate", async (input) => {
   const validateRecipe = getValidateRecipe();
 
   if (!validateRecipe) {
-    return {
-      ok: false,
-      warnings: [],
-      schemaErrors: [{ path: "", message: "Soustack package not available." }],
-      conformanceIssues: [],
-    };
+    throw new ToolError(
+      "MODULE_UNAVAILABLE",
+      "Soustack package not available.",
+      "validateRecipe",
+    );
+  }
+
+  const mode = (options as { mode?: unknown } | undefined)?.mode;
+  if (mode !== undefined && mode !== "schema" && mode !== "full") {
+    throw new ToolError("INVALID_MODE", "options.mode must be \"schema\" or \"full\".");
   }
 
   try {
-    const result = await validateRecipe(recipe, options as Parameters<typeof validateRecipe>[1]);
+    const normalizedOptions =
+      options && typeof options === "object"
+        ? { ...options, ...(mode ? { mode } : {}) }
+        : mode
+          ? { mode }
+          : undefined;
+    const result = await validateRecipe(
+      recipe,
+      normalizedOptions as Parameters<typeof validateRecipe>[1],
+    );
     const ok = result?.ok === true;
     const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
     const schemaErrors = Array.isArray(result?.schemaErrors) ? result.schemaErrors : [];
@@ -128,12 +156,7 @@ registerTool("soustack.validate", async (input) => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    return {
-      ok: false,
-      warnings: [],
-      schemaErrors: [{ path: "", message }],
-      conformanceIssues: [],
-    };
+    throw new ToolError("VALIDATION_FAILED", message);
   }
 });
 
@@ -285,6 +308,21 @@ function serializeError(error: unknown): { message: string } {
   return { message: "Unknown error" };
 }
 
+function extractErrorCode(error: unknown): string {
+  if (error instanceof ToolError) {
+    return error.code;
+  }
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" ? code : "TOOL_ERROR";
+}
+
+function extractErrorDetails(error: unknown): unknown {
+  if (error instanceof ToolError) {
+    return error.details;
+  }
+  return (error as { details?: unknown } | null)?.details;
+}
+
 export function startServer(
   input: NodeJS.ReadableStream,
   output: NodeJS.WritableStream,
@@ -330,7 +368,9 @@ export function startServer(
       writeResponse(output, response);
     } catch (error) {
       const { message } = serializeError(error);
-      writeResponse(output, toErrorResponse(parsed.id, "TOOL_ERROR", message));
+      const code = extractErrorCode(error);
+      const details = extractErrorDetails(error);
+      writeResponse(output, toErrorResponse(parsed.id, code, message, details));
     }
   });
 }

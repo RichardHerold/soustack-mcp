@@ -15,11 +15,12 @@ function getScaleRecipe(): ScaleRecipe | null {
 }
 
 class ScaleError extends Error {
-  code = "INVALID_MULTIPLIER";
+  code: string;
 
-  constructor(message: string) {
+  constructor(message: string, code = "INVALID_MULTIPLIER") {
     super(message);
     this.name = "ScaleError";
+    this.code = code;
   }
 }
 
@@ -33,10 +34,21 @@ export function scaleTool(input: Record<string, unknown>): Record<string, unknow
   }
 
   if (!scaleRecipe) {
-    throw new Error("Soustack package not available.");
+    throw new ScaleError("Soustack package not available.", "MODULE_UNAVAILABLE");
   }
 
-  const scaledRecipe = scaleRecipe(recipe, { multiplier });
+  let scaledRecipe: unknown;
+  try {
+    scaledRecipe = scaleRecipe(recipe, { multiplier });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Scaling failed.";
+    throw new ScaleError(message, "SCALE_FAILED");
+  }
 
-  return { recipe: scaledRecipe };
+  const equipment = (scaledRecipe as { equipment?: unknown } | null)?.equipment;
+
+  return {
+    recipe: scaledRecipe,
+    ...(equipment === undefined ? {} : { equipment }),
+  };
 }
