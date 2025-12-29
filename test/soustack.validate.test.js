@@ -77,3 +77,42 @@ test("soustack.validate returns ok:true for valid recipes", async () => {
     conformanceIssues: [],
   });
 });
+
+test("soustack.validate normalizes legacy $schema to canonical in normalizedRecipe", async () => {
+  const legacySchemaUrl = "https://soustack.ai/schemas/soustack.schema.json";
+  const canonicalSchemaUrl = "https://spec.soustack.org/soustack.schema.json";
+
+  globalThis.__soustackValidateRecipe = async () => ({
+    ok: true,
+    warnings: [],
+    schemaErrors: [],
+    conformanceIssues: [],
+    normalizedRecipe: {
+      type: "recipe",
+      name: "Test Recipe",
+      $schema: legacySchemaUrl,
+    },
+  });
+
+  const { startServer } = await import(`../dist/server.js?legacy=${Date.now()}`);
+  const response = await sendRequest(startServer, {
+    id: "legacy-1",
+    tool: "soustack.validate",
+    input: {
+      recipe: {
+        type: "recipe",
+        name: "Test Recipe",
+        $schema: legacySchemaUrl,
+      },
+      options: { includeNormalized: true },
+    },
+  });
+
+  assert.equal(response.ok, true);
+  assert.equal(response.output.ok, true);
+  assert.ok(response.output.normalizedRecipe);
+  assert.equal(
+    response.output.normalizedRecipe.$schema,
+    canonicalSchemaUrl,
+  );
+});

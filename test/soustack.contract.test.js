@@ -98,6 +98,10 @@ test("soustack tools return stable envelopes and minimal fixtures", async () => 
   assert.equal(typeof metaResponse.output.mcpVersion, "string");
   assert.equal(metaResponse.output.soustackVersion, "test");
   assert.equal(metaResponse.output.specVersion, "test");
+  assert.equal(
+    metaResponse.output.canonicalSchema,
+    "https://spec.soustack.org/soustack.schema.json",
+  );
   assert.deepEqual(
     metaResponse.output.supportedProfiles,
     ["lite", "base", "timed", "scalable", "illustrated", "equipped", "prepped", "minimal", "core"],

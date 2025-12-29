@@ -93,6 +93,7 @@ Output:
   "mcpVersion": "0.1.0",
   "soustackVersion": "0.4.0",
   "specVersion": "0.3.0",
+  "canonicalSchema": "https://spec.soustack.org/soustack.schema.json",
   "supportedProfiles": ["lite","base","timed","scalable","illustrated","equipped","prepped","minimal","core"],
   "timestamp": "2024-01-01T00:00:00.000Z"
 }
