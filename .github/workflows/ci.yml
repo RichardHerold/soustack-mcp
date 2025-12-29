@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check-generated-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Run build:schemas (if exists)
+        run: |
+          if npm run | grep -q "build:schemas"; then
+            npm run build:schemas
+          else
+            echo "build:schemas script not found, skipping"
+          fi
+        continue-on-error: true
+      
+      - name: Run docs:sync (if exists)
+        run: |
+          if npm run | grep -q "docs:sync"; then
+            npm run docs:sync
+          else
+            echo "docs:sync script not found, skipping"
+          fi
+        continue-on-error: true
+      
+      - name: Check for uncommitted changes
+        run: |
+          # Check for uncommitted changes in tracked files
+          # git diff --name-only shows modified tracked files (respects .gitignore)
+          # git ls-files --others --exclude-standard shows untracked files not in .gitignore
+          MODIFIED=$(git diff --name-only)
+          UNTRACKED=$(git ls-files --others --exclude-standard)
+          
+          # Filter out any files that should be ignored (node_modules, dist)
+          # This is a safety check in case they were accidentally tracked
+          MODIFIED=$(echo "$MODIFIED" | grep -v -E '^(node_modules|dist)/' || true)
+          UNTRACKED=$(echo "$UNTRACKED" | grep -v -E '^(node_modules|dist)/' || true)
+          
+          if [ -n "$MODIFIED" ] || [ -n "$UNTRACKED" ]; then
+            echo "ERROR: Generated files are out of sync!"
+            echo "The following files have uncommitted changes:"
+            [ -n "$MODIFIED" ] && echo "$MODIFIED" | sed 's/^/M /'
+            [ -n "$UNTRACKED" ] && echo "$UNTRACKED" | sed 's/^/?? /'
+            echo ""
+            echo "Please run: npm run build:schemas && npm run docs:sync && git add -A && git commit"
+            exit 1
+          else
+            echo "✓ No uncommitted changes detected"
+          fi
+
