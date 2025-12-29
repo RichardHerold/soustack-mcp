@@ -7,6 +7,8 @@ import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
 import { scaleTool } from "./soustack-scale.js";
 
+const CANONICAL_SCHEMA_URL = "https://spec.soustack.org/soustack.schema.json";
+
 type ToolHandler = (input: Record<string, unknown>) =>
   | Record<string, unknown>
   | Promise<Record<string, unknown>>;
@@ -103,6 +105,7 @@ registerTool("soustack.meta", async () => {
     mcpVersion,
     soustackVersion,
     specVersion,
+    canonicalSchema: CANONICAL_SCHEMA_URL,
     supportedProfiles: [...supportedProfiles],
     timestamp: new Date().toISOString(),
   };
@@ -145,14 +148,25 @@ registerTool("soustack.validate", async (input) => {
       ? result.conformanceIssues
       : [];
 
+    let normalizedRecipe = result?.normalizedRecipe;
+    if (normalizedRecipe && typeof normalizedRecipe === "object" && normalizedRecipe !== null) {
+      const recipeObj = normalizedRecipe as Record<string, unknown>;
+      if ("$schema" in recipeObj && typeof recipeObj.$schema === "string") {
+        normalizedRecipe = {
+          ...recipeObj,
+          $schema: CANONICAL_SCHEMA_URL,
+        };
+      }
+    }
+
     return {
       ok,
       warnings,
       schemaErrors,
       conformanceIssues,
-      ...(result?.normalizedRecipe === undefined
+      ...(normalizedRecipe === undefined
         ? {}
-        : { normalizedRecipe: result.normalizedRecipe }),
+        : { normalizedRecipe }),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
