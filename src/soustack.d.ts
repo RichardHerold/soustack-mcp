@@ -26,6 +26,7 @@ declare module "soustack" {
     normalizedRecipe?: object;
   };
 
+  export const SOUSTACK_VERSION: string;
   export const SOUSTACK_SPEC_VERSION: string;
 
   export function validateRecipe(

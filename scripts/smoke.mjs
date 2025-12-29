@@ -10,6 +10,8 @@ const supportedProfiles = [
   "illustrated",
   "equipped",
   "prepped",
+  "minimal",
+  "core",
 ];
 
 function createLineReader(stream) {
