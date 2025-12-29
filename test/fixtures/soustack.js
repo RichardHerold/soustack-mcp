@@ -45,4 +45,5 @@ export const detectProfiles = detectProfilesEnabled
     }
   : undefined;
 
+export const SOUSTACK_VERSION = "1.2.3";
 export const SOUSTACK_SPEC_VERSION = "test";

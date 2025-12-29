@@ -3,6 +3,12 @@ import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 type ValidateRecipe = typeof import("soustack")["validateRecipe"];
 type SoustackProfile = import("soustack").SoustackProfile;
+type SoustackModule = {
+  validateRecipe?: ValidateRecipe;
+  detectProfiles?: DetectProfiles;
+  SOUSTACK_VERSION?: unknown;
+  SOUSTACK_SPEC_VERSION?: unknown;
+};
 import type { Request, Response } from "./protocol.js";
 import { convertTool } from "./soustack-convert.js";
 import { scaleTool } from "./soustack-scale.js";
@@ -35,14 +41,9 @@ registerTool("ping", async () => ({ pong: true }));
 const require = createRequire(import.meta.url);
 type DetectProfiles = (recipe: unknown) => Promise<unknown> | unknown;
 
-function getSoustackModule():
-  | { validateRecipe?: ValidateRecipe; detectProfiles?: DetectProfiles }
-  | null {
+function getSoustackModule(): SoustackModule | null {
   try {
-    return require("soustack") as {
-      validateRecipe?: ValidateRecipe;
-      detectProfiles?: DetectProfiles;
-    };
+    return require("soustack") as SoustackModule;
   } catch (error) {
     return null;
   }
@@ -77,23 +78,17 @@ async function readMcpVersion(): Promise<string> {
 }
 
 function readSoustackVersion(): string | null {
-  try {
-    const soustackPackage = require("soustack/package.json") as { version?: string };
-    return typeof soustackPackage?.version === "string" ? soustackPackage.version : null;
-  } catch (error) {
-    return null;
-  }
+  const soustackModule = getSoustackModule();
+  return typeof soustackModule?.SOUSTACK_VERSION === "string"
+    ? soustackModule.SOUSTACK_VERSION
+    : null;
 }
 
 function readSoustackSpecVersion(): string | null {
-  try {
-    const soustackModule = require("soustack") as { SOUSTACK_SPEC_VERSION?: unknown };
-    return typeof soustackModule?.SOUSTACK_SPEC_VERSION === "string"
-      ? soustackModule.SOUSTACK_SPEC_VERSION
-      : null;
-  } catch (error) {
-    return null;
-  }
+  const soustackModule = getSoustackModule();
+  return typeof soustackModule?.SOUSTACK_SPEC_VERSION === "string"
+    ? soustackModule.SOUSTACK_SPEC_VERSION
+    : null;
 }
 
 registerTool("soustack.meta", async () => {

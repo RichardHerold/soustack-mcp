@@ -50,5 +50,6 @@ module.exports = {
   validateRecipe,
   scaleRecipe,
   detectProfiles,
+  SOUSTACK_VERSION: "1.2.3",
   SOUSTACK_SPEC_VERSION: "test",
 };

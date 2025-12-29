@@ -96,7 +96,7 @@ test("soustack tools return stable envelopes and minimal fixtures", async () => 
 
   assert.equal(metaResponse.ok, true);
   assert.equal(typeof metaResponse.output.mcpVersion, "string");
-  assert.equal(metaResponse.output.soustackVersion, "test");
+  assert.match(metaResponse.output.soustackVersion, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
   assert.equal(metaResponse.output.specVersion, "test");
   assert.equal(
     metaResponse.output.canonicalSchema,
